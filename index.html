@@ -4,68 +4,30 @@
 <head>
     <meta charset="utf-8">
     <title>Hello OpenCV.js</title>
+    
     <script async src="./JS/opencv.js" onload="onOpenCvReady();" type="text/javascript"></script>
+    <script src="./JS/openCVWrap.js" type="text/javascript"></script>
+    <script defer src="./JS/siteFunctionality.js" type="text/javascript"></script>
 </head>
 
 <body>
     <h2>Hello OpenCV.js</h2>
     <p id="status">OpenCV.js is loading...</p>
     <div>
-        <div class="inputoutput">
-            <canvas id="canvasOutput" ></canvas>
+        <div>
+            <canvas id="standardSize"></canvas>            
+        </div>
+        <div>
+            <canvas id="scaleSpace"></canvas>
+        </div>
+        <div>
+            <canvas id="dogSpace"></canvas>
+        </div>
+        <div>
             <div class="caption"><input type="file" id="fileInput" name="file" /></div>
         </div>
     </div>
-
-    <script type="text/javascript">
-        let imgElement = document.createElement("IMG");
-        let inputElement = document.getElementById("fileInput");
-
-        inputElement.addEventListener("change",
-            (e) => {
-                imgElement.src = URL.createObjectURL(e.target.files[0]);
-            },
-            false);
-
-        imgElement.onload = function () {
-            let image = cv.imread(imgElement);           
-            Resize(image, 800, 600);
-            TurnToGrayScale(image);
-            //ApplyGaussian(image);
-            DrawKeypoints(image);
-            cv.imshow('canvasOutput', image);
-        };
-
-        function TurnToGrayScale(image) {
-            cv.cvtColor(image, image, cv.COLOR_BGR2GRAY);
-        }
-
-        function ApplyGaussian(image){
-            cv.GaussianBlur(image, image, new cv.Size(5,5),0,0,0);
-        }
-
-        function Resize(image, maxX, maxY)  { 
-            if(image.cols > maxX || image.rows > maxY){
-                let xFactor = maxX / image.cols;
-                let yFactor = maxY / image.rows;
-                let smallestFactor = Math.min(xFactor, yFactor);
-                cv.resize(image, image, new cv.Size(), smallestFactor, smallestFactor, cv.INTER_AREA);
-            }      
-        }
-
-        function DrawKeypoints(image) {
-            let orb = new cv.ORB(100);
-            let kp = new cv.KeyPointVector();
-            orb.detect(image, kp);
-            cv.drawKeypoints(image,kp,image);
-        }
-
-
-        function onOpenCvReady() {
-            document.getElementById('status').innerHTML = 'OpenCV.js is ready.';
-        }
-    </script>
-
+    
 </body>
 
 </html>
