@@ -11,15 +11,16 @@ inputElement.addEventListener("change",
 imgElement.onload = function () {
     let original = cv.imread(imgElement);
     TurnToGrayScale(original);
-    let standardSize = LimitSize(original);           
-    cv.imshow('standardSize', standardSize);
+    let standardSizeImage = LimitSize(original);           
+    cv.imshow('standardSize', standardSizeImage);
+    let upscaledImage = UpSample(standardSizeImage);
+    cv.imshow('upscaled', upscaledImage);
 
+    let scaleSpaceImage = CreateScaleSpaceImage(upscaledImage);
+    let dogSpaceImage = CreateDoGsImage();
 
-    let scaleSpace = CreateScaleSpaceImage(standardSize);
-    let dogSpace = CreateDOGSpaceImage(standardSize);
-
-    cv.imshow('scaleSpace', scaleSpace);
-    cv.imshow('dogSpace', dogSpace);
+    cv.imshow('scaleSpace', scaleSpaceImage);
+    cv.imshow('dogSpace', dogSpaceImage);
     //DrawKeypoints(original);           
 };
 

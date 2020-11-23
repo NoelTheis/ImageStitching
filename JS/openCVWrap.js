@@ -57,19 +57,26 @@ function PadImage(image) {
 
     let dest = new cv.Mat();
     cv.copyMakeBorder(image, dest, top, bottom, left, right, cv.BORDER_CONSTANT, new cv.Scalar(255,255,255,255));
-    //cv.copyMakeBorder(image, dest, top, bottom, left, right, cv.BORDER_TRANSPARENT);
+
     return dest;
 }
 
 //Combining images
-function CombineMatVectorsToImage(rows){
-    let rowVector = new cv.MatVector();
+function CombineMatVectorArrayToImage(rows){
+    let rowImages = new cv.MatVector();
+    padX = rows[0].get(0).cols;
+    padY = rows[0].get(0).rows;
     rows.forEach(row => {
-        let rowImage = myHConcat(row);
-        rowVector.push_back(rowImage);       
+        let paddedRow = new cv.MatVector();      
+        for(let i = 0; i < row.size(); i++){
+            let padded = PadImage(row.get(i));
+            paddedRow.push_back(padded);
+        }
+        let rowImage = myHConcat(paddedRow);
+        rowImages.push_back(rowImage);       
     });
-    let scaleSpaceImage = myVConcat(rowVector);
-    return scaleSpaceImage;
+    let finalImage = myVConcat(rowImages);
+    return finalImage;
 }
 
 function myHConcat(vector){
@@ -88,25 +95,21 @@ function myVConcat(vector){
 function CreateScaleSpaceImage(image) {
     scaleSpace = CreateScaleSpace(image);
 
-    return CombineMatVectorsToImage(scaleSpace);
+    return CombineMatVectorArrayToImage(scaleSpace);
 }
 
 function CreateScaleSpace(image){
     let rows = [];
-    let currentStartImage = UpSample(image);
-    padX = currentStartImage.cols;
-    padY = currentStartImage.rows;
-    //currentStartImage = PadImage(currentStartImage);
+    let firstImageInRow = image;
     for (let i = 0; i < downSampleCount; i++) {
-        let row = CreateGaussSequence(currentStartImage);
+        let row = CreateScaleSpaceRow(firstImageInRow);
         rows.push(row);
-        let downSampled = DownSample(row.get(gaussSequenceLength - 1));
-        currentStartImage = PadImage(downSampled);
+        firstImageInRow = DownSample(row.get(row.size() - 1));
     }
     return rows; 
 }
 
-function CreateGaussSequence(image){
+function CreateScaleSpaceRow(image){
     let matVec = new cv.MatVector();
     let currentImage = image;
     for (let i = 0; i < gaussSequenceLength; i++) {
@@ -123,63 +126,41 @@ function ApplyGaussian(image, deviation){
 }
 
 //Difference of gaussian stuff
-function CreateDOGSpaceImage(image) {
-    scaleSpace = CreateScaleSpace(image);
-    dogSpace = CreateDOGSpace(scaleSpace);
+function CreateDoGsImage() {
+    dogSpace = CreateDoGRows(scaleSpace);
 
-    return CombineMatVectorsToImage(dogSpace);
+    return CombineMatVectorArrayToImage(dogSpace);
 }
 
-function CreateDOGSpace(scaleSpace){
-    let dogSpace = [];
+function CreateDoGRows(scaleSpace){
+    let DoGRows = [];
     scaleSpace.forEach(scaleSpaceRow => {
-        let dogRow = CreateDOGRow(scaleSpaceRow);
-        dogSpace.push(dogRow);
+        let DoGRow = CreateDoGRow(scaleSpaceRow);
+        DoGRows.push(DoGRow);
     });
-    return dogSpace;
+    return DoGRows;
 }
 
-function CreateDOGRow(scaleSpaceRow){
+function CreateDoGRow(scaleSpaceRow){
     let dogRow = new cv.MatVector();
     for(let i = 0;i < gaussSequenceLength - 1; i++){
-        let dog = new cv.Mat();
-        let mask = new cv.Mat();
-        let dtype = -1;
-        cv.subtract(scaleSpaceRow.get(i), scaleSpaceRow.get(i+1), dog, mask, dtype);
-        //cv.absdiff(scaleSpaceRow.get(i), scaleSpaceRow.get(i+1), dog);
-        //dog = CreateDOG(scaleSpaceRow.get(i), scaleSpaceRow.get(i+1));
+        let dog = CreateDoG(scaleSpaceRow.get(i), scaleSpaceRow.get(i+1));
+
+        cv.normalize(dog, dog, alpha=0, beta=1, norm_type=cv.NORM_MINMAX, dtype=cv.CV_32F);
+
         dogRow.push_back(dog);
     }
     return dogRow;
 }
 
-// function CreateDOG(gauss1, gauss2){
-//     let diffImage = new cv.Mat();
-//     cv.absdiff(gauss1, gauss2, diffImage);
-
-//     let foregroundMask = new cv.Mat.zeros(diffImage.rows, diffImage.cols, cv.CV_8U);
-
-//     let threshold = 30.0;
-//     let dist;
-
-//     for(let j=0; j<diffImage.rows; ++j){
-//         for(let i=0; i<diffImage.cols; ++i)
-//         {
-//             let pix = diffImage.ucharAt(j,i);
-
-//             dist = (pix[0]*pix[0] + pix[1]*pix[1] + pix[2]*pix[2]);
-//             dist = Math.sqrt(dist);
-
-//             if(dist>threshold)
-//             {
-//                 foregroundMask.ucharAt(j,i) = 255;
-//             }
-//         }
-//     }
-
-// }
-
-//Keypoint stuff
+function CreateDoG(gauss1, gauss2){
+    let dog = new cv.Mat();
+    //let mask = new cv.Mat();
+    //let dtype = -1;
+    //cv.subtract(gauss1, gauss2, dog, mask, dtype);       
+    cv.absdiff(gauss1, gauss2, dog);
+    return dog;
+}
 
 function DrawKeypoints(image) {
     let orb = new cv.ORB(100);
